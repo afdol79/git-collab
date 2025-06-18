@@ -15,17 +15,17 @@
         integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q"
         crossorigin="anonymous"></script>
     <script>
-        fetch('https://dummyjson.com/products')
+        fetch('http://localhost:3000/products')
             .then(res => res.json())
             .then((apiData) => {
                 console.log(apiData)
-                apiData.products.map((item) => {
+                apiData.map((item) => {
                     document.getElementById("data").innerHTML += `
                         <div class="col-sm-6 col-md-4">    
                             <div class="card">
-                                <img src="${item.images[0]}" width="100%" />
+                                <img src="${item.image}" width="100%" />
                                 <div class="card-body">
-                                    <h5 class="card-title">${item.title}</h5>
+                                    <h5 class="card-title">${item.name}</h5>
                                 </div>
                             </div>
                         </div>
