@@ -1,2 +1,2 @@
-# Font-End by Ratchanon
-# Back-End by Pattamaraj
+# Font-End by Ratchanon Semsayan
+# Back-End by Pattamaraj Booranawanich
