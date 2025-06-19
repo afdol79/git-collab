@@ -3,9 +3,10 @@ const app = express();
 const cors = require('cors');
 
 app.use(cors());
+app.use(express.json()); // เพิ่ม middleware สำหรับ parse JSON
 
 // ข้อมูลสินค้า 10 ชนิด
-const products = [
+let products = [
   { 
     id: 1, 
     name: "มือถือ", 
@@ -68,12 +69,32 @@ const products = [
   }
 ];
 
-// ดูสินค้าทั้งหมด
+// ฟังก์ชันสำหรับสร้าง ID ใหม่
+const getNextId = () => {
+  return Math.max(...products.map(p => p.id)) + 1;
+};
+
+// ฟังก์ชันตรวจสอบข้อมูลสินค้า
+const validateProduct = (product) => {
+  const errors = [];
+  
+  if (!product.name || product.name.trim() === '') {
+    errors.push('ชื่อสินค้าจำเป็น');
+  }
+  
+  if (!product.price || product.price <= 0) {
+    errors.push('ราคาต้องมากกว่า 0');
+  }
+  
+  return errors;
+};
+
+// GET - ดูสินค้าทั้งหมด
 app.get('/products', (req, res) => {
   res.json(products);
 });
 
-// ดูสินค้าตาม ID
+// GET - ดูสินค้าตาม ID
 app.get('/products/:id', (req, res) => {
   const id = parseInt(req.params.id);
   const product = products.find(p => p.id === id);
@@ -85,8 +106,128 @@ app.get('/products/:id', (req, res) => {
   }
 });
 
+// POST - เพิ่มสินค้าใหม่
+app.post('/products', (req, res) => {
+  const { name, price, image } = req.body;
+  
+  // ตรวจสอบข้อมูล
+  const errors = validateProduct(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+  
+  // สร้างสินค้าใหม่
+  const newProduct = {
+    id: getNextId(),
+    name: name.trim(),
+    price: parseFloat(price),
+    image: image || "https://via.placeholder.com/400x400?text=No+Image"
+  };
+  
+  products.push(newProduct);
+  res.status(201).json(newProduct);
+});
+
+// PUT - แก้ไขสินค้าทั้งหมด
+app.put('/products/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const productIndex = products.findIndex(p => p.id === id);
+  
+  if (productIndex === -1) {
+    return res.status(404).json({ error: 'ไม่พบสินค้า' });
+  }
+  
+  // ตรวจสอบข้อมูล
+  const errors = validateProduct(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ errors });
+  }
+  
+  // อัพเดทสินค้า
+  const updatedProduct = {
+    id: id,
+    name: req.body.name.trim(),
+    price: parseFloat(req.body.price),
+    image: req.body.image || products[productIndex].image
+  };
+  
+  products[productIndex] = updatedProduct;
+  res.json(updatedProduct);
+});
+
+// PATCH - แก้ไขสินค้าบางส่วน
+app.patch('/products/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const productIndex = products.findIndex(p => p.id === id);
+  
+  if (productIndex === -1) {
+    return res.status(404).json({ error: 'ไม่พบสินค้า' });
+  }
+  
+  const product = products[productIndex];
+  const updatedData = { ...product };
+  
+  // อัพเดทเฉพาะฟิลด์ที่ส่งมา
+  if (req.body.name !== undefined) {
+    if (req.body.name.trim() === '') {
+      return res.status(400).json({ error: 'ชื่อสินค้าไม่สามารถว่างได้' });
+    }
+    updatedData.name = req.body.name.trim();
+  }
+  
+  if (req.body.price !== undefined) {
+    if (req.body.price <= 0) {
+      return res.status(400).json({ error: 'ราคาต้องมากกว่า 0' });
+    }
+    updatedData.price = parseFloat(req.body.price);
+  }
+  
+  if (req.body.image !== undefined) {
+    updatedData.image = req.body.image;
+  }
+  
+  products[productIndex] = updatedData;
+  res.json(updatedData);
+});
+
+// DELETE - ลบสินค้า
+app.delete('/products/:id', (req, res) => {
+  const id = parseInt(req.params.id);
+  const productIndex = products.findIndex(p => p.id === id);
+  
+  if (productIndex === -1) {
+    return res.status(404).json({ error: 'ไม่พบสินค้า' });
+  }
+  
+  const deletedProduct = products.splice(productIndex, 1)[0];
+  res.json({ 
+    message: 'ลบสินค้าเรียบร้อยแล้ว', 
+    product: deletedProduct 
+  });
+});
+
+// DELETE - ลบสินค้าทั้งหมด
+app.delete('/products', (req, res) => {
+  const deletedCount = products.length;
+  products = [];
+  res.json({ 
+    message: `ลบสินค้าทั้งหมดเรียบร้อยแล้ว (${deletedCount} รายการ)` 
+  });
+});
+
 // เริ่มเซิร์ฟเวอร์
 app.listen(3000, () => {
   console.log('Server ทำงานที่ http://localhost:3000');
-  console.log('ลองเข้า: http://localhost:3000/products');
+  console.log('\n--- API Endpoints ---');
+  console.log('GET    /products       - ดูสินค้าทั้งหมด');
+  console.log('GET    /products/:id   - ดูสินค้าตาม ID');
+  console.log('POST   /products       - เพิ่มสินค้าใหม่');
+  console.log('PUT    /products/:id   - แก้ไขสินค้าทั้งหมด');
+  console.log('PATCH  /products/:id   - แก้ไขสินค้าบางส่วน');
+  console.log('DELETE /products/:id   - ลบสินค้าตาม ID');
+  console.log('DELETE /products       - ลบสินค้าทั้งหมด');
+  console.log('\nลองเข้า: http://localhost:3000/products');
 });
+
+// Export สำหรับ testing
+module.exports = app;
