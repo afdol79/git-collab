@@ -8,7 +8,7 @@ npm run dev
 # Back-End by Pattamaraj Booranawanich 
 การใช้งาน Back-End
 ```
-npm init -y
-npm install express sqlite3 cors
+cd server
+npm install
 node server.js
 ```
